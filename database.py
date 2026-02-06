@@ -60,8 +60,11 @@ class PostgreSQLConnection:
     
     def get_table_data(self, table_name):
         """Get all data from a specific table."""
+        from psycopg2 import sql
         cursor = self.connection.cursor()
-        cursor.execute(f"SELECT * FROM {table_name}")
+        # Use sql.Identifier to safely quote table names
+        query = sql.SQL("SELECT * FROM {}").format(sql.Identifier(table_name))
+        cursor.execute(query)
         columns = [desc[0] for desc in cursor.description]
         data = cursor.fetchall()
         cursor.close()
@@ -104,7 +107,11 @@ class MySQLConnection:
     def get_table_data(self, table_name):
         """Get all data from a specific table."""
         cursor = self.connection.cursor()
-        cursor.execute(f"SELECT * FROM {table_name}")
+        # Use backtick quoting to safely escape table names
+        # Validate table name contains only valid characters
+        if not table_name.replace('_', '').replace('-', '').isalnum():
+            raise ValueError(f"Invalid table name: {table_name}")
+        cursor.execute(f"SELECT * FROM `{table_name}`")
         columns = [desc[0] for desc in cursor.description]
         data = cursor.fetchall()
         cursor.close()
